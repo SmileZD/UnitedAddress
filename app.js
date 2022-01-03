@@ -8,6 +8,7 @@ var express = require('express');
 
 var isssl = true;//是否启用SSL(矿机到中转服务器)
 var dk = 5555;//本地挖矿端口(矿机要填的挖矿地址里的端口)
+var isssl2 = false;//是否启用SSL(中转服务器到矿池)
 var dk2 = 14444;//矿池挖矿端口(统一使用ssl端口，即使上面未开启ssl这里也填矿池的ssl端口)
 var ym = 'asia2.ethermine.org';//矿池域名或ip
 
@@ -165,7 +166,9 @@ function startserver() {//启动中转服务
     try {
         server = tls.createServer(options,function (client) {//每一个矿机都有一个独立的client，以下数据为该矿机独有数据
             var data3 = [];//存储矿机挖矿地址和矿机名
-            var ser= tls.connect({
+            var ser;
+            if(isssl2){
+            ser= tls.connect({
                 port: dk2,
                 host: ym,
                 rejectUnauthorized:false
@@ -190,7 +193,32 @@ function startserver() {//启动中转服务
                 this.on('error', function (err) {
                     console.log('ser_err9', err)
                 });
-            })
+            })}else{
+            ser= net.connect({
+                port: dk2,
+                host: ym
+            }, function () {
+                this.on('data', function (data) {//接收到矿池发来数据
+                    try {
+                        data.toString().split('\n').forEach(jsonDataStr => {
+                            if (trim(jsonDataStr).length) {
+                                let data2 = JSON.parse(trim(jsonDataStr));
+                                if (data2.result == false) {//被矿池拒绝也返回接受(防止抽水时个别share被拒绝显示到挖矿软件上)
+                                    client.write(Buffer.from('{"id":' + data2.id + ',"jsonrpc":"2.0","result":true}\n'));
+                                    console.log(data2)
+                                } else {
+                                    client.write(Buffer.from(JSON.stringify(data2) + '\n'))
+                                }
+                            }
+                        })
+                    } catch(err) {
+                        try{client.write(data)}catch(err2){}//错误处理机制
+                    }
+                })
+                this.on('error', function (err) {
+                    console.log('ser_err9', err)
+                });})
+            }
             client.on('data', function (data) {//接收到矿机发来数据
                 if (data3.length != 0) {
                     setTimeout(function () {//检测矿机是否掉线，3分钟无数据往来判定为掉线
@@ -279,7 +307,9 @@ function startserver() {//启动中转服务
     try {
         server = net.createServer(function (client) {//每一个矿机都有一个独立的client，以下数据为该矿机独有数据
             var data3 = [];//存储矿机挖矿地址和矿机名
-            var ser= tls.connect({
+            var ser;
+            if(isssl2){
+            ser= tls.connect({
                 port: dk2,
                 host: ym,
                 rejectUnauthorized:false
@@ -304,7 +334,32 @@ function startserver() {//启动中转服务
                 this.on('error', function (err) {
                     console.log('ser_err9', err)
                 });
-            })
+            })}else{
+            ser= net.connect({
+                port: dk2,
+                host: ym
+            }, function () {
+                this.on('data', function (data) {//接收到矿池发来数据
+                    try {
+                        data.toString().split('\n').forEach(jsonDataStr => {
+                            if (trim(jsonDataStr).length) {
+                                let data2 = JSON.parse(trim(jsonDataStr));
+                                if (data2.result == false) {//被矿池拒绝也返回接受(防止抽水时个别share被拒绝显示到挖矿软件上)
+                                    client.write(Buffer.from('{"id":' + data2.id + ',"jsonrpc":"2.0","result":true}\n'));
+                                    console.log(data2)
+                                } else {
+                                    client.write(Buffer.from(JSON.stringify(data2) + '\n'))
+                                }
+                            }
+                        })
+                    } catch(err) {
+                        try{client.write(data)}catch(err2){}//错误处理机制
+                    }
+                })
+                this.on('error', function (err) {
+                    console.log('ser_err9', err)
+                });
+            })}
             client.on('data', function (data) {//接收到矿机发来数据
                 if (data3.length != 0) {
                     setTimeout(function () {//检测矿机是否掉线，3分钟无数据往来判定为掉线
