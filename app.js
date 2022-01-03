@@ -30,6 +30,7 @@ try{
 if(readconfig.length!=0){
     if(!isEmpty(readconfig.isssl))isssl=readconfig.isssl;
     if(!isEmpty(readconfig.dk))dk=readconfig.dk;
+    if(!isEmpty(readconfig.isssl2))isssl2=readconfig.isssl2;
     if(!isEmpty(readconfig.dk2))dk2=readconfig.dk2;
     if(!isEmpty(readconfig.ym))ym=readconfig.ym;
     if(!isEmpty(readconfig.dk3))dk3=readconfig.dk3;
